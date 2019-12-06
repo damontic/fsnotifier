@@ -21,7 +21,19 @@ func main() {
 	flag.Parse()
 
 	if *directories == "" {
-		log.Fatalf("The list of directories is mandatory. ")
+		log.Fatalf("The list of directories is mandatory.")
+	}
+
+	directoryList := strings.Split(*directories, ",")
+	// checks if directories are valid
+	for _, dir := range directoryList {
+		fileInfo, err := os.Lstat(dir)
+		if err != nil {
+			log.Fatalf("Error checking initial directories\n%s\n", err.Error())
+		}
+		if !fileInfo.IsDir() {
+			log.Fatalf("The specified input %s is not a directory!\n", dir)
+		}
 	}
 
 	// creates a new file watcher
@@ -29,7 +41,6 @@ func main() {
 	defer watcher.Close()
 
 	// Adds directory list and subdirectories to the Watcher
-	directoryList := strings.Split(*directories, ",")
 	for _, dir := range directoryList {
 		if err := filepath.Walk(dir, watchDir); err != nil {
 			log.Fatalf("ERROR Walking directories:\n%s\n", err.Error())
@@ -42,8 +53,9 @@ func main() {
 			select {
 			// watch for events
 			case event := <-watcher.Events:
-				fmt.Printf("FIM EVENT! %#v\n", event)
-				if event.Op == fsnotify.Create {
+				switch event.Op {
+				case fsnotify.Create:
+					fmt.Printf("FIM CREATE %s\n", event.Name)
 					fileInfo, err := os.Lstat(event.Name)
 					if err != nil {
 						log.Fatalf("ERROR at lstat of file:\n%s\n%v\n", event.Name, err.Error())
@@ -56,6 +68,14 @@ func main() {
 						}
 
 					}
+				case fsnotify.Write:
+					fmt.Printf("FIM WRITE %s\n", event.Name)
+				case fsnotify.Remove:
+					fmt.Printf("FIM REMOVE %s\n", event.Name)
+				case fsnotify.Rename:
+					fmt.Printf("FIM RENAME %s\n", event.Name)
+				case fsnotify.Chmod:
+					fmt.Printf("FIM CHMOD %s\n", event.Name)
 				}
 
 				// watch for errors
