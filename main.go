@@ -60,22 +60,12 @@ func main() {
 				switch event.Op {
 				case fsnotify.Create:
 					fmt.Printf("FIM CREATE %s\n", event.Name)
-					fileInfo, err := os.Lstat(event.Name)
-					if err != nil {
-						log.Fatalf("ERROR at lstat of file:\n%s\n%v\n", event.Name, err.Error())
-					}
-
-					if fileInfo.IsDir() {
-						err = watcher.Add(event.Name)
-						if err != nil {
-							log.Fatalf("ERROR adding new directory to watch list\n%v\n", err.Error())
-						}
-
-					}
+					addToWatchers(event)
 				case fsnotify.Write:
 					fmt.Printf("FIM WRITE %s\n", event.Name)
 				case fsnotify.Remove:
 					fmt.Printf("FIM REMOVE %s\n", event.Name)
+					removeFromWatchers(event)
 				case fsnotify.Rename:
 					fmt.Printf("FIM RENAME %s\n", event.Name)
 				case fsnotify.Chmod:
@@ -102,4 +92,32 @@ func watchDir(path string, fi os.FileInfo, err error) error {
 	}
 
 	return nil
+}
+
+func addToWatchers(event fsnotify.Event) {
+	fileInfo, err := os.Lstat(event.Name)
+	if err != nil {
+		log.Fatalf("ERROR at lstat of file:\n%s\n%v\n", event.Name, err.Error())
+	}
+
+	if fileInfo.IsDir() {
+		err = watcher.Add(event.Name)
+		if err != nil {
+			log.Fatalf("ERROR adding new directory to watch list\n%v\n", err.Error())
+		}
+	}
+}
+
+func removeFromWatchers(event fsnotify.Event) {
+	fileInfo, err := os.Lstat(event.Name)
+	if err != nil {
+		log.Fatalf("ERROR at lstat of file:\n%s\n%v\n", event.Name, err.Error())
+	}
+
+	if fileInfo.IsDir() {
+		err = watcher.Remove(event.Name)
+		if err != nil {
+			log.Fatalf("ERROR removing directory from watchers list\n%v\n", err.Error())
+		}
+	}
 }
