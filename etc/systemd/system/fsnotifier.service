@@ -1,0 +1,9 @@
+[Unit]
+Description=Outputs inotify events in specific directories
+DefaultDependencies=no 
+Requires=systemd-journald.service
+After=systemd-journald.service systemd-remount-fs.service 
+
+[Service]
+ExecStart=/usr/local/bin/fsnotifier -d /usr,/var,/tmp,/etc
+Type=simple
