@@ -1,9 +1,12 @@
 package main
 
 import (
+	"flag"
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/fsnotify/fsnotify"
 )
@@ -14,30 +17,50 @@ var watcher *fsnotify.Watcher
 // main
 func main() {
 
+	directories := flag.String("directories", "", "Mandatory list of directories to watch separated by ','")
+	flag.Parse()
+
+	if *directories == "" {
+		log.Fatalf("The list of directories is mandatory. ")
+	}
+
 	// creates a new file watcher
 	watcher, _ = fsnotify.NewWatcher()
 	defer watcher.Close()
 
-	// starting at the root of the project, walk each file/directory searching for
-	// directories
-	if err := filepath.Walk("/home/david/buenas", watchDir); err != nil {
-		fmt.Println("ERROR", err)
+	// Adds directory list and subdirectories to the Watcher
+	directoryList := strings.Split(*directories, ",")
+	for _, dir := range directoryList {
+		if err := filepath.Walk(dir, watchDir); err != nil {
+			log.Fatalf("ERROR Walking directories:\n%s\n", err.Error())
+		}
 	}
 
-	//
 	done := make(chan bool)
-
-	//
 	go func() {
 		for {
 			select {
 			// watch for events
 			case event := <-watcher.Events:
-				fmt.Printf("EVENT! %#v\n", event)
+				fmt.Printf("FIM EVENT! %#v\n", event)
+				if event.Op == fsnotify.Create {
+					fileInfo, err := os.Lstat(event.Name)
+					if err != nil {
+						log.Fatalf("ERROR at lstat of file:\n%s\n%v\n", event.Name, err.Error())
+					}
+
+					if fileInfo.IsDir() {
+						err = watcher.Add(event.Name)
+						if err != nil {
+							log.Fatalf("ERROR adding new directory to watch list\n%v\n", err.Error())
+						}
+
+					}
+				}
 
 				// watch for errors
 			case err := <-watcher.Errors:
-				fmt.Println("ERROR", err)
+				fmt.Printf("ERROR received from Watcher\n%s\n", err.Error())
 			}
 		}
 	}()
