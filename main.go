@@ -17,14 +17,18 @@ var watcher *fsnotify.Watcher
 // main
 func main() {
 
-	directories := flag.String("directories", "", "Mandatory list of directories to watch separated by ','")
+	directoriesUsage := "Mandatory list of directories to watch separated by ','"
+
+	var directories string
+	flag.StringVar(&directories, "directories", "", directoriesUsage)
+	flag.StringVar(&directories, "d", "", directoriesUsage+" (shorthand)")
 	flag.Parse()
 
-	if *directories == "" {
+	if directories == "" {
 		log.Fatalf("The list of directories is mandatory.")
 	}
 
-	directoryList := strings.Split(*directories, ",")
+	directoryList := strings.Split(directories, ",")
 	// checks if directories are valid
 	for _, dir := range directoryList {
 		fileInfo, err := os.Lstat(dir)
