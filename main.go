@@ -52,6 +52,7 @@ func main() {
 	// Adds directory list and subdirectories to the Watcher excluding excludes
 	initializeWatcher(watcher, directoryList, excludesList)
 
+	log.Println("FIM: listening to inotify events...")
 	done := make(chan bool)
 	go func() {
 		for {
@@ -62,13 +63,13 @@ func main() {
 				case fsnotify.Create:
 					fmt.Printf("FIM CREATE %s\n", event.Name)
 					if !isDirectoryExcluded(event.Name, excludesList) {
-						addToWatchers(event, watcher)
+						addToWatchers(event.Name, watcher)
 					}
 				case fsnotify.Write:
 					fmt.Printf("FIM WRITE %s\n", event.Name)
 				case fsnotify.Remove:
 					fmt.Printf("FIM REMOVE %s\n", event.Name)
-					removeFromWatchers(event, watcher)
+					removeFromWatchers(event.Name, watcher)
 				case fsnotify.Rename:
 					fmt.Printf("FIM RENAME %s\n", event.Name)
 				case fsnotify.Chmod:
@@ -85,31 +86,24 @@ func main() {
 	<-done
 }
 
-func addToWatchers(event fsnotify.Event, watcher *fsnotify.Watcher) {
-	fileInfo, err := os.Lstat(event.Name)
+func addToWatchers(filename string, watcher *fsnotify.Watcher) {
+	fileInfo, err := os.Lstat(filename)
 	if err != nil {
-		log.Fatalf("ERROR at lstat of file:\n%s\n%v\n", event.Name, err.Error())
+		log.Fatalf("ERROR at lstat of file:\n%s\n%v\n", filename, err.Error())
 	}
 
 	if fileInfo.IsDir() {
-		err = watcher.Add(event.Name)
+		err = watcher.Add(filename)
 		if err != nil {
 			log.Fatalf("ERROR adding new directory to watch list\n%v\n", err.Error())
 		}
 	}
 }
 
-func removeFromWatchers(event fsnotify.Event, watcher *fsnotify.Watcher) {
-	fileInfo, err := os.Lstat(event.Name)
+func removeFromWatchers(filename string, watcher *fsnotify.Watcher) {
+	err := watcher.Remove(filename)
 	if err != nil {
-		log.Fatalf("ERROR at lstat of file:\n%s\n%v\n", event.Name, err.Error())
-	}
-
-	if fileInfo.IsDir() {
-		err = watcher.Remove(event.Name)
-		if err != nil {
-			log.Fatalf("ERROR removing directory from watchers list\n%v\n", err.Error())
-		}
+		log.Printf("ERROR removing from watchers list\n%v\n", err.Error())
 	}
 }
 
