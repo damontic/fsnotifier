@@ -5,5 +5,5 @@ Requires=systemd-journald.service
 After=systemd-journald.service systemd-remount-fs.service 
 
 [Service]
-ExecStart=/usr/local/bin/fsnotifier -d /usr,/var,/tmp,/etc
+ExecStart=/usr/local/bin/fsnotifier -d /usr,/var,/tmp,/etc -e /var/log/journal,/var/log/syslog
 Type=simple
