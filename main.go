@@ -11,7 +11,6 @@ import (
 	"github.com/fsnotify/fsnotify"
 )
 
-// main
 func main() {
 
 	directoriesUsage := "Mandatory list of directories to watch separated by ','"
